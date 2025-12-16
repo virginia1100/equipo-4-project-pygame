@@ -8,30 +8,37 @@ pygame.init()
 ANCHO = 600
 ALTO = 400
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Pygame")
+pygame.display.set_caption("Juego fácil")
 
 # Colores
 BLANCO = (255, 255, 255)
-AZUL = (0, 0, 255)
 ROJO = (255, 0, 0)
 NEGRO = (0, 0, 0)
 
 fuente = pygame.font.Font(None, 28)
-
-# Reloj
 reloj = pygame.time.Clock()
 
+# Cargar imagen del jugador
+homer_img = pygame.image.load("Homer_Simpson.jpg")
+homer_img = pygame.transform.scale(homer_img, (50, 70))
+
 def reiniciar():
-    global x, y, obj_x, obj_y, obstaculos, puntos, inicio, pausa, terminado, ganaste
-    x, y = 280, 180
-    obj_x = random.randint(0, 570)
-    obj_y = random.randint(0, 370)
-    obstaculos = []
+    global jugador_rect, obj_rect, obstaculos, puntos
+    global inicio, pausa, terminado, ganaste
+
+    jugador_rect.x = 280
+    jugador_rect.y = 180
+
+    obj_rect.x = random.randint(0, 570)
+    obj_rect.y = random.randint(0, 370)
+
+    obstaculos.clear()
     for i in range(3):
         ox = random.randint(0, 570)
-        oy = random.randint(0, 370)
-        vel = random.choice([2, 3])
+        oy = random.randint(-200, 0)
+        vel = random.randint(2, 3)
         obstaculos.append([pygame.Rect(ox, oy, 30, 30), vel])
+
     puntos[0] = 0
     inicio = True
     pausa = False
@@ -39,12 +46,15 @@ def reiniciar():
     ganaste = False
 
 # Jugador
-x, y = 280, 180
+jugador_rect = pygame.Rect(280, 180, 40, 70)
 vel_jugador = 5
 
 # Objetivo
-obj_x = random.randint(0, 570)
-obj_y = random.randint(0, 370)
+obj_rect = pygame.Rect(
+    random.randint(0, 570),
+    random.randint(0, 370),
+    30, 30
+)
 
 # Obstáculos (lista)
 obstaculos = []
@@ -76,7 +86,7 @@ while jugando:
             elif terminado and evento.key == pygame.K_r:
                 reiniciar()
 
-    # ----- PANTALLA INICIO -----
+    # ----- INICIO -----
     if inicio:
         pantalla.blit(fuente.render("Comenzar", True, NEGRO), (260, 130))
         pantalla.blit(fuente.render("Presiona ESPACIO", True, NEGRO), (220, 160))
@@ -92,7 +102,7 @@ while jugando:
         pygame.display.update()
         continue
 
-    # ----- JUEGO TERMINADO -----
+    # ----- GAME OVER -----
     if terminado:
         if ganaste:
             pantalla.blit(fuente.render("Ganaste, juego terminado", True, NEGRO), (180, 180))
@@ -100,25 +110,28 @@ while jugando:
             pantalla.blit(fuente.render("Juego terminado", True, NEGRO), (230, 180))
 
         pantalla.blit(fuente.render("Presiona R para reiniciar", True, NEGRO), (200, 210))
-        pantalla.blit(fuente.render("¡Gran trabajo!", True, NEGRO), (230, 240))
+        pantalla.blit(fuente.render("Ups! Intenta de nuevo", True, NEGRO), (230, 240))
         pygame.display.update()
         continue
 
     # ----- JUEGO -----
     teclas = pygame.key.get_pressed()
     if teclas[pygame.K_LEFT]:
-        x -= vel_jugador
+        jugador_rect.x -= vel_jugador
     if teclas[pygame.K_RIGHT]:
-        x += vel_jugador
+        jugador_rect.x += vel_jugador
     if teclas[pygame.K_UP]:
-        y -= vel_jugador
+        jugador_rect.y -= vel_jugador
     if teclas[pygame.K_DOWN]:
-        y += vel_jugador
+        jugador_rect.y += vel_jugador
 
-    jugador = pygame.draw.rect(pantalla, AZUL, (x, y, 30, 30))
-    objetivo = pygame.draw.rect(pantalla, ROJO, (obj_x, obj_y, 30, 30))
+    # Dibujar jugador (sprite)
+    pantalla.blit(homer_img, jugador_rect)
 
-    # Obstáculos en movimiento
+    # Objetivo
+    pygame.draw.rect(pantalla, ROJO, obj_rect)
+
+    # Obstáculos
     for obs in obstaculos:
         obs[0].y += obs[1]
         if obs[0].top > ALTO:
@@ -127,16 +140,15 @@ while jugando:
 
         pygame.draw.rect(pantalla, NEGRO, obs[0])
 
-        if jugador.colliderect(obs[0]):
+        if jugador_rect.colliderect(obs[0]):
             terminado = True
 
     # Colisión con objetivo
-    if jugador.colliderect(objetivo):
+    if jugador_rect.colliderect(obj_rect):
         puntos[0] += 1
-        obj_x = random.randint(0, 570)
-        obj_y = random.randint(0, 370)
+        obj_rect.x = random.randint(0, 570)
+        obj_rect.y = random.randint(0, 370)
 
-    # Ganar
     if puntos[0] >= 10:
         terminado = True
         ganaste = True
