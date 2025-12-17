@@ -3,27 +3,37 @@ import random
 import array
 
 pygame.init()
+pygame.mixer.init()
 
 # Pantalla
 ANCHO = 600
 ALTO = 400
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Juego fácil")
+pygame.display.set_caption("Pygame")
 
 # Colores
 BLANCO = (255, 255, 255)
-ROJO = (255, 0, 0)
 NEGRO = (0, 0, 0)
 
 fuente = pygame.font.Font(None, 28)
 reloj = pygame.time.Clock()
 
-# Cargar imagen del jugador
+# ---- IMÁGENES ----
 homer_img = pygame.image.load("Homer_Simpson.jpg")
 homer_img = pygame.transform.scale(homer_img, (50, 70))
 
+bart_img = pygame.image.load("bart-simpson.jpg")
+bart_img = pygame.transform.scale(bart_img, (30, 30))
+
+# ---- AUDIO ----
+pygame.mixer.music.load("Audiohomero.mp3")
+
+def reproducir_audio():
+    pygame.mixer.music.stop()
+    pygame.mixer.music.play(-1)
+
 def reiniciar():
-    global jugador_rect, obj_rect, obstaculos, puntos
+    global jugador_rect, obj_rect, puntos
     global inicio, pausa, terminado, ganaste
 
     jugador_rect.x = 280
@@ -32,32 +42,23 @@ def reiniciar():
     obj_rect.x = random.randint(0, 570)
     obj_rect.y = random.randint(0, 370)
 
-    obstaculos.clear()
-    for i in range(3):
-        ox = random.randint(0, 570)
-        oy = random.randint(-200, 0)
-        vel = random.randint(2, 3)
-        obstaculos.append([pygame.Rect(ox, oy, 30, 30), vel])
-
     puntos[0] = 0
     inicio = True
     pausa = False
     terminado = False
     ganaste = False
+    reproducir_audio()
 
 # Jugador
-jugador_rect = pygame.Rect(280, 180, 40, 70)
+jugador_rect = pygame.Rect(280, 180, 50, 70)
 vel_jugador = 5
 
-# Objetivo
+# Objetivo (Bart)
 obj_rect = pygame.Rect(
     random.randint(0, 570),
     random.randint(0, 370),
     30, 30
 )
-
-# Obstáculos (lista)
-obstaculos = []
 
 # Puntos (array)
 puntos = array.array('i', [0])
@@ -86,35 +87,36 @@ while jugando:
             elif terminado and evento.key == pygame.K_r:
                 reiniciar()
 
-    # ----- INICIO -----
+    # ---- INICIO ----
     if inicio:
-        pantalla.blit(fuente.render("Comenzar", True, NEGRO), (260, 130))
-        pantalla.blit(fuente.render("Presiona ESPACIO", True, NEGRO), (220, 160))
-        pantalla.blit(fuente.render("Mover", True, NEGRO), (260, 190))
-        pantalla.blit(fuente.render("¡Buena suerte!", True, NEGRO), (230, 220))
+        pantalla.blit(fuente.render("Start now", True, NEGRO), (260, 130))
+        pantalla.blit(fuente.render("Press SPACE to continue", True, NEGRO), (220, 160))
+        pantalla.blit(fuente.render("Move with arrow keys", True, NEGRO), (260, 190))
+        pantalla.blit(fuente.render("¡Good luck!", True, NEGRO), (230, 220))
         pygame.display.update()
         continue
 
-    # ----- PAUSA -----
+    # ---- PAUSA ----
     if pausa:
-        pantalla.blit(fuente.render("Juego en pausa", True, NEGRO), (240, 180))
-        pantalla.blit(fuente.render("Presione P para continuar", True, NEGRO), (180, 210))
+        pantalla.blit(fuente.render("Paused game", True, NEGRO), (240, 180))
+        pantalla.blit(fuente.render("Press P to continue", True, NEGRO), (180, 210))
         pygame.display.update()
         continue
 
-    # ----- GAME OVER -----
+    # ---- GAME OVER ----
     if terminado:
+        pygame.mixer.music.stop()
         if ganaste:
-            pantalla.blit(fuente.render("Ganaste, juego terminado", True, NEGRO), (180, 180))
+            pantalla.blit(fuente.render("You win, game finished", True, NEGRO), (180, 180))
         else:
-            pantalla.blit(fuente.render("Juego terminado", True, NEGRO), (230, 180))
+            pantalla.blit(fuente.render("Game over", True, NEGRO), (230, 180))
 
-        pantalla.blit(fuente.render("Presiona R para reiniciar", True, NEGRO), (200, 210))
-        pantalla.blit(fuente.render("Ups! Intenta de nuevo", True, NEGRO), (230, 240))
+        pantalla.blit(fuente.render("Press R to restart", True, NEGRO), (200, 210))
+        pantalla.blit(fuente.render("¡Good job!", True, NEGRO), (230, 240))
         pygame.display.update()
         continue
 
-    # ----- JUEGO -----
+    # ---- JUEGO ----
     teclas = pygame.key.get_pressed()
     if teclas[pygame.K_LEFT]:
         jugador_rect.x -= vel_jugador
@@ -125,41 +127,26 @@ while jugando:
     if teclas[pygame.K_DOWN]:
         jugador_rect.y += vel_jugador
 
-    # Dibujar jugador (sprite)
     pantalla.blit(homer_img, jugador_rect)
+    pantalla.blit(bart_img, obj_rect)
 
-    # Objetivo
-    pygame.draw.rect(pantalla, ROJO, obj_rect)
-
-    # Obstáculos
-    for obs in obstaculos:
-        obs[0].y += obs[1]
-        if obs[0].top > ALTO:
-            obs[0].y = -30
-            obs[0].x = random.randint(0, 570)
-
-        pygame.draw.rect(pantalla, NEGRO, obs[0])
-
-        if jugador_rect.colliderect(obs[0]):
-            terminado = True
-
-    # Colisión con objetivo
+    # Colisión con Bart
     if jugador_rect.colliderect(obj_rect):
         puntos[0] += 1
         obj_rect.x = random.randint(0, 570)
         obj_rect.y = random.randint(0, 370)
 
-    if puntos[0] >= 10:
+    if puntos[0] >= 20:
         terminado = True
         ganaste = True
 
-    # Textos obligatorios
-    pantalla.blit(fuente.render("¡Evita todos los obstáculos!", True, NEGRO), (10, 10))
-    pantalla.blit(fuente.render("Presione P para pausar el juego.", True, NEGRO), (10, 35))
-    pantalla.blit(fuente.render("Mover", True, NEGRO), (10, 60))
-    pantalla.blit(fuente.render(f"Puntos: {puntos[0]}", True, NEGRO), (10, 85))
+    pantalla.blit(fuente.render("Press P to pause the game.", True, NEGRO), (10, 35))
+    pantalla.blit(fuente.render("Move", True, NEGRO), (10, 60))
+    pantalla.blit(fuente.render(f"Score: {puntos[0]}", True, NEGRO), (10, 85))
+    pantalla.blit(fuente.render("Catch the Barts! (20 times)", True, NEGRO), (10, 10))
 
     pygame.display.update()
     reloj.tick(60)
 
 pygame.quit()
+
